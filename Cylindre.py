@@ -6,7 +6,7 @@ class Cylindre:
         self.rayon = rayon
         self.hauteur = hauteur
         self.h = kwargs.get("h", 1.0)
-        self.dimensions = (rayon//self.h, hauteur//self.h)
+        self.dimensions = (int(rayon/self.h), int(hauteur/self.h))
 
     @property
     def grille(self):
