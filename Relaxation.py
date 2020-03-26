@@ -25,11 +25,12 @@ class Relaxation:
         r = np.indices(self.grille.shape)[0][2:-2, 2:-2]
         prochaine_grille[2:-2, 2:-2] = (self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
                                         + self.grille[2:-2, :-4] + self.grille[2:-2, 4:])/4 \
-                                        + (self.grille[1:-3, 2:-2] + self.grille[3:-1, 2:-2])/(r*4)
+                                        + (self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2])/(r*4)
 
         self.grille_precedente = np.copy(self.grille)
         self.grille = prochaine_grille
         self.appliquer_frontieres()
+
         self.calcul_erreur()
         self.verification_terminal()
         return self.grille, self.iteration
@@ -69,6 +70,6 @@ class Relaxation:
     def afficher_carte_de_chaleur(self):
         sns.set()
         ax = sns.heatmap(self.grille)
-        plt.xlabel("z [cm/h]")
-        plt.ylabel("r [cm/h]")
+        plt.xlabel("z [2cm/h]")
+        plt.ylabel("r [2cm/h]")
         plt.show()
