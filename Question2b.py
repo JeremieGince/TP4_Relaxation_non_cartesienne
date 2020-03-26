@@ -4,13 +4,13 @@ from Relaxation import Relaxation
 
 
 if __name__ == '__main__':
-    h = 1
+    h = 0.1
     cylindre_1 = Cylindre(rayon=10, hauteur=30, h=h)
 
     print(cylindre_1.grille.shape)
 
     mask_150V = np.zeros(cylindre_1.grille.shape)
-    mask_150V[0:2//h, :] = True
+    mask_150V[0:int(1/h), :] = True
 
     mask_0V = np.zeros(cylindre_1.grille.shape)
     mask_0V[-1, :] = True
@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
     print(frontieres.data, frontieres.mask, sep="\n")
 
-    relax = Relaxation(grille=cylindre_1.grille, frontieres=frontieres, h=h)
-    print(relax(100))
-    relax.afficher_carte_de_chaleur()
+    relax = Relaxation(grille=cylindre_1.grille, frontieres=frontieres, h=h, erreur=-1)
+    relax(100_000, verbose=True, affichage=False)
+    # relax.afficher_carte_de_chaleur()
 
