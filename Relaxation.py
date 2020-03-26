@@ -25,28 +25,43 @@ class Relaxation:
         r = np.indices(self.grille.shape)[0][2:-2, 2:-2]
         prochaine_grille[2:-2, 2:-2] = (self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
                                         + self.grille[2:-2, :-4] + self.grille[2:-2, 4:])/4 \
-                                        + self.h*(self.grille[1:-3, 2:-2] + self.grille[3:-1, 2:-2])/(r*4)
+                                        + (self.grille[1:-3, 2:-2] + self.grille[3:-1, 2:-2])/(r*4)
 
         self.grille_precedente = np.copy(self.grille)
         self.grille = prochaine_grille
         self.appliquer_frontieres()
+        self.calcul_erreur()
+        self.verification_terminal()
         return self.grille, self.iteration
 
     def calcul_erreur(self):
         if self.grille_precedente is not None:
-            gv = self.grille[self.frontieres.mask].flatten()
-            gnv = self.grille_precedente[self.frontieres.mask].flatten()
+            gv = self.grille[np.invert(self.frontieres.mask)].flatten()
+            gnv = self.grille_precedente[np.invert(self.frontieres.mask)].flatten()
             chng = np.sqrt(np.sum((gv - gnv) ** 2))
             self.difference_courante = chng
 
     def verification_terminal(self):
         self.terminal = self.difference_courante <= self.erreur
 
-    def __call__(self, nombre_iterations:int = 1):
+    def __call__(self, nombre_iterations: int = None, **kwargs):
+        if nombre_iterations is None:
+            nombre_iterations = np.int(np.inf)
+
         for i in range(nombre_iterations):
             self.faire_iteration()
 
+            if kwargs.get("verbose", False) and 100*((i+1)/nombre_iterations) % 10 == 0:
+                print(f"itr: {i+1}/{nombre_iterations} -> diff: {self.difference_courante}, Terminal: {self.terminal}")
+            if kwargs.get("affichage", False) and 100*((i+1)/nombre_iterations) % 10 == 0:
+                self.afficher_carte_de_chaleur()
+
             if self.terminal:
+                if kwargs.get("verbose", False) and 100 * ((i + 1) / nombre_iterations) % 10 != 0:
+                    print(f"itr: {i + 1}/{nombre_iterations} -> diff: {self.difference_courante},"
+                          f" Terminal: {self.terminal}")
+                if kwargs.get("affichage", False) and 100 * ((i + 1) / nombre_iterations) % 10 != 0:
+                    self.afficher_carte_de_chaleur()
                 break
 
         return self.grille, self.iteration
@@ -54,4 +69,6 @@ class Relaxation:
     def afficher_carte_de_chaleur(self):
         sns.set()
         ax = sns.heatmap(self.grille)
+        plt.xlabel("z [cm/h]")
+        plt.ylabel("r [cm/h]")
         plt.show()
