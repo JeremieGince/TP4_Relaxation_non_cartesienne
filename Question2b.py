@@ -25,4 +25,6 @@ if __name__ == '__main__':
     print(frontieres.data, frontieres.mask, sep="\n")
 
     relax = Relaxation(grille=cylindre_1.grille, frontieres=frontieres, h=h)
-    print(relax(1))
+    print(relax(100))
+    relax.afficher_carte_de_chaleur()
+
