@@ -1,4 +1,6 @@
 import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 class Relaxation:
@@ -20,9 +22,10 @@ class Relaxation:
     def faire_iteration(self):
         self.iteration += 1
         prochaine_grille = np.copy(self.grille)
-        prochaine_grille[1:-1, 1:-1] = (self.grille[:-2, 1:-1,] + self.grille[2:, 1:-1]
-                                        + self.grille[1:-1, :-2] + self.grille[1:-1, 2:])/4 \
-                                        + self.h*(self.grille[:-2, 1:-1,] + self.grille[2:, 1:-1])/(4)
+        r = np.indices(self.grille.shape)[0][2:-2, 2:-2]
+        prochaine_grille[2:-2, 2:-2] = (self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
+                                        + self.grille[2:-2, :-4] + self.grille[2:-2, 4:])/4 \
+                                        + self.h*(self.grille[1:-3, 2:-2] + self.grille[3:-1, 2:-2])/(r*4)
 
         self.grille_precedente = np.copy(self.grille)
         self.grille = prochaine_grille
@@ -47,3 +50,8 @@ class Relaxation:
                 break
 
         return self.grille, self.iteration
+
+    def afficher_carte_de_chaleur(self):
+        sns.set()
+        ax = sns.heatmap(self.grille)
+        plt.show()
