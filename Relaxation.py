@@ -73,3 +73,8 @@ class Relaxation:
         plt.xlabel("z [2cm/h]")
         plt.ylabel("r [2cm/h]")
         plt.show()
+
+        ax = sns.heatmap(np.log(self.grille))
+        plt.xlabel("z [2cm/h]")
+        plt.ylabel("r [2cm/h]")
+        plt.show()
