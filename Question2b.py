@@ -24,7 +24,8 @@ def solution_analytique(grille_dimensions: (int, int), h: float):
     plt.xlabel("z [2cm/h]")
     plt.ylabel("r [2cm/h]")
     plt.title("Solution analytique")
-    plt.show()
+    plt.savefig(f"Figures/heatmap_2b_analytique.png", dpi=300)
+    # plt.show()
 
 
 if __name__ == '__main__':
@@ -50,7 +51,8 @@ if __name__ == '__main__':
 
     solution_analytique(cylindre_1.dimensions, cylindre_1.h)
 
-    relax = Relaxation(grille=cylindre_1.grille, frontieres=frontieres, h=h, erreur=1e-3)
-    relax(10_000, verbose=True, affichage=False)
+    relax = Relaxation(grille=cylindre_1.grille, frontieres=frontieres, h=h, erreur=1e-3,
+                       nom="Carte de chaleur problème 2b")
+    relax(-1, verbose=True, affichage=False)
     relax.afficher_carte_de_chaleur()
 
