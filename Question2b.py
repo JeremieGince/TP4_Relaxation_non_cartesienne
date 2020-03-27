@@ -1,6 +1,30 @@
 import numpy as np
 from Cylindre import Cylindre
 from Relaxation import Relaxation
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+
+def solution_analytique(grille_dimensions: (int, int), h: float):
+
+    v = lambda r, z: 150*(np.log(r) - np.log(10))/(np.log(1) - np.log(10))
+    grille = []
+    for i in range(grille_dimensions[0]):
+        ligne = []
+        for j in range(grille_dimensions[1]):
+            vi = v(i*h, j*h)
+            ligne.append(vi if vi != np.inf else 150)
+        grille.append(ligne)
+
+    grille = np.array(grille)
+    print(grille)
+
+    sns.set()
+    ax = sns.heatmap(grille)
+    plt.xlabel("z [2cm/h]")
+    plt.ylabel("r [2cm/h]")
+    plt.title("Solution analytique")
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -10,7 +34,7 @@ if __name__ == '__main__':
     print(cylindre_1.grille.shape)
 
     mask_150V = np.zeros(cylindre_1.grille.shape)
-    mask_150V[0:int(1/h), :] = True
+    mask_150V[int(1/cylindre_1.h)-1:int(1/cylindre_1.h)+1, :] = True
 
     mask_0V = np.zeros(cylindre_1.grille.shape)
     mask_0V[-1, :] = True
@@ -24,7 +48,9 @@ if __name__ == '__main__':
 
     print(frontieres.data, frontieres.mask, sep="\n")
 
-    relax = Relaxation(grille=cylindre_1.grille, frontieres=frontieres, h=h, erreur=-1)
-    relax(10_000, verbose=True, affichage=True)
-    # relax.afficher_carte_de_chaleur()
+    solution_analytique(cylindre_1.dimensions, cylindre_1.h)
+
+    relax = Relaxation(grille=cylindre_1.grille, frontieres=frontieres, h=h, erreur=1e-3)
+    relax(10_000, verbose=True, affichage=False)
+    relax.afficher_carte_de_chaleur()
 
