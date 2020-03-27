@@ -1,6 +1,7 @@
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import time
 
 
 class Relaxation:
@@ -13,6 +14,7 @@ class Relaxation:
         self.difference_courante: float = np.inf
         self.erreur: float = kwargs.get("erreur", 1e1)
         self.h = kwargs.get("h", 1)
+        self.nom = kwargs.get("nom", "carte_de_chaleur")
 
         self.appliquer_frontieres()
 
@@ -21,13 +23,14 @@ class Relaxation:
 
     def faire_iteration(self):
         self.iteration += 1
+        self.grille_precedente = np.copy(self.grille)
+
         prochaine_grille = np.copy(self.grille)
         r = np.indices(self.grille.shape)[0][2:-2, 2:-2]
         prochaine_grille[2:-2, 2:-2] = (self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
                                         + self.grille[2:-2, :-4] + self.grille[2:-2, 4:])/4 \
                                         + (self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2])/(r*4)
 
-        self.grille_precedente = np.copy(self.grille)
         self.grille = prochaine_grille
         self.appliquer_frontieres()
 
@@ -46,8 +49,9 @@ class Relaxation:
         self.terminal = self.difference_courante <= self.erreur
 
     def __call__(self, nombre_iterations: int = None, **kwargs):
-        if nombre_iterations is None:
-            nombre_iterations = np.int(np.inf)
+        temps_de_depart = time.time()
+        if nombre_iterations is None or nombre_iterations < 0:
+            nombre_iterations = np.iinfo(np.int32).max
 
         for i in range(nombre_iterations):
             self.faire_iteration()
@@ -59,18 +63,26 @@ class Relaxation:
 
             if self.terminal:
                 if kwargs.get("verbose", False) and 100 * ((i + 1) / nombre_iterations) % 10 != 0:
-                    print(f"itr: {i + 1}/{nombre_iterations} -> diff: {self.difference_courante},"
-                          f" Terminal: {self.terminal}")
+                    self.afficher_etat()
                 if kwargs.get("affichage", False) and 100 * ((i + 1) / nombre_iterations) % 10 != 0:
                     self.afficher_carte_de_chaleur()
                 break
 
-        return self.grille, self.iteration
+        temps_de_calcul = time.time()-temps_de_depart
+        if kwargs.get("verbose", False):
+            print(f"Temps de calcul: {temps_de_calcul} s")
+
+        return self.grille, self.iteration, temps_de_calcul
+
+    def afficher_etat(self):
+        print(f"itr: {self.iteration} -> diff: {self.difference_courante}, Terminal: {self.terminal}")
 
     def afficher_carte_de_chaleur(self):
         sns.set()
         ax = sns.heatmap(self.grille)
         plt.xlabel("z [2cm/h]")
         plt.ylabel("r [2cm/h]")
+        plt.title(f"{self.nom} - {self.iteration} itérations")
+        plt.savefig(f"Figures/{self.nom}-{self.iteration}itr.png", dpi=300)
         plt.show()
 
