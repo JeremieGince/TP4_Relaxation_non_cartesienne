@@ -51,8 +51,8 @@ if __name__ == '__main__':
 
     solution_analytique(cylindre_1.dimensions, cylindre_1.h)
 
-    relax = Relaxation(grille=cylindre_1.grille, frontieres=frontieres, h=h, erreur=1e-3,
+    relax = Relaxation(grille=cylindre_1.grille, frontieres=frontieres, h=h, erreur=1e-1,
                        nom="Carte de chaleur problème 2b")
-    relax(-1, verbose=True, affichage=False)
+    relax(100_000, verbose=True, affichage=False)
     relax.afficher_carte_de_chaleur()
 

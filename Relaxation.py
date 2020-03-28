@@ -2,6 +2,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import time
+from scipy import signal
 
 
 class Relaxation:
@@ -62,9 +63,9 @@ class Relaxation:
                 self.afficher_carte_de_chaleur()
 
             if self.terminal:
-                if kwargs.get("verbose", False) and 100 * ((i + 1) / nombre_iterations) % 10 != 0:
+                if kwargs.get("verbose", False) and 100*((i+1)/nombre_iterations) % 10 != 0:
                     self.afficher_etat()
-                if kwargs.get("affichage", False) and 100 * ((i + 1) / nombre_iterations) % 10 != 0:
+                if kwargs.get("affichage", False) and 100*((i+1)/nombre_iterations) % 10 != 0:
                     self.afficher_carte_de_chaleur()
                 break
 
@@ -86,3 +87,92 @@ class Relaxation:
         plt.savefig(f"Figures/{self.nom}-{self.iteration}itr.png", dpi=300)
         plt.show()
 
+
+class RelaxationGaussSeidel(Relaxation):
+    def __init__(self, grille: np.ndarray, frontieres: np.ma.MaskedArray, **kwargs):
+        super(RelaxationGaussSeidel, self).__init__(grille, frontieres, **kwargs)
+        self.kernel_h = (1/4)*np.array(
+            [[0, 0, 1, 0, 0],
+             [0, 0, 0, 0, 0],
+             [1, 0, 0, 0, 1],
+             [0, 0, 0, 0, 0],
+             [0, 0, 1, 0, 0]]
+        )
+        self.kernel_hdemi = (1/4)*np.array(
+            [[0, 0, 0, 0, 0],
+             [0, 0, -1, 0, 0],
+             [0, 0, 0, 0, 0],
+             [0, 0, 1, 0, 0],
+             [0, 0, 0, 0, 0]]
+        )
+
+    def faire_iteration(self):
+        self.iteration += 1
+        self.grille_precedente = np.copy(self.grille)
+
+        # self.grille[2:-2, 2:-2] = (self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
+        #                           + self.grille[2:-2, :-4] + self.grille[2:-2, 4:]) / 4 \
+        #                           + (self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2]) / (r * 4)
+
+        # self.grille[2:-2, 2:-2] = self.grille[:-4, 2:-2] / 4
+        # self.grille[2:-2, 2:-2] += self.grille[4:, 2:-2] / 4
+        # self.grille[2:-2, 2:-2] += self.grille[2:-2, :-4] / 4
+        # self.grille[2:-2, 2:-2] += self.grille[2:-2, 4:] / 4
+        # self.grille[2:-2, 2:-2] += self.grille[3:-1, 2:-2] / (r*4)
+        # self.grille[2:-2, 2:-2] += -self.grille[1:-3, 2:-2] / (r*4)
+
+        prochaine_grille = np.copy(self.grille)
+        r = np.indices(self.grille.shape)[0][2:-2, 2:-2]
+        prochaine_grille[2:-2, 2:-2] = signal.convolve2d(self.grille, self.kernel_h, mode="same")[2:-2, 2:-2]
+        prochaine_grille[2:-2, 2:-2] += signal.convolve2d(self.grille, self.kernel_hdemi, mode="same")[2:-2, 2:-2]/r
+
+        self.grille = prochaine_grille
+
+        self.appliquer_frontieres()
+
+        self.calcul_erreur()
+        self.verification_terminal()
+
+        return self.grille, self.iteration
+
+
+class SurRelaxation(Relaxation):
+    def __init__(self, grille: np.ndarray, frontieres: np.ma.MaskedArray, **kwargs):
+        super(SurRelaxation, self).__init__(grille, frontieres, **kwargs)
+        self.w: float = kwargs.get("w", 0.0)
+
+    def faire_iteration(self):
+        self.iteration += 1
+        self.grille_precedente = np.copy(self.grille)
+
+        r = np.indices(self.grille.shape)[0][2:-2, 2:-2]
+        self.grille[2:-2, 2:-2] = -self.w*self.grille[2:-2, 2:-2] + \
+                                  (1+self.w)*(self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
+                                  + self.grille[2:-2, :-4] + self.grille[2:-2, 4:]) / 4 \
+                                  + (1+self.w)*(self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2]) / (r * 4)
+
+        self.appliquer_frontieres()
+
+        self.calcul_erreur()
+        self.verification_terminal()
+
+        return self.grille, self.iteration
+
+
+class SurRelaxationGaussSeidel(SurRelaxation):
+    def faire_iteration(self):
+        self.iteration += 1
+        self.grille_precedente = np.copy(self.grille)
+
+        r = np.indices(self.grille.shape)[0][2:-2, 2:-2]
+        self.grille[2:-2, 2:-2] = -self.w*self.grille[2:-2, 2:-2] \
+                                  (1+self.w)*(self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
+                                  + self.grille[2:-2, :-4] + self.grille[2:-2, 4:]) / 4 \
+                                  + (1+self.w)*(self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2]) / (r * 4)
+
+        self.appliquer_frontieres()
+
+        self.calcul_erreur()
+        self.verification_terminal()
+
+        return self.grille, self.iteration
