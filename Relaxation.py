@@ -14,8 +14,9 @@ class Relaxation:
         self.terminal: bool = False
         self.difference_courante: float = np.inf
         self.erreur: float = kwargs.get("erreur", 1e1)
-        self.h = kwargs.get("h", 1)
+        self.h_par_indice = kwargs.get("h_par_indice", 1)
         self.nom = kwargs.get("nom", "carte_de_chaleur")
+        self.mask_erreur = None
 
         self.appliquer_frontieres()
 
@@ -30,7 +31,7 @@ class Relaxation:
         r = np.indices(self.grille.shape)[0][2:-2, 2:-2]
         prochaine_grille[2:-2, 2:-2] = (self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
                                         + self.grille[2:-2, :-4] + self.grille[2:-2, 4:])/4 \
-                                        + (self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2])/(r*4)
+                                        + (self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2])/(r*2)
 
         self.grille = prochaine_grille
         self.appliquer_frontieres()
@@ -40,11 +41,26 @@ class Relaxation:
         return self.grille, self.iteration
 
     def calcul_erreur(self):
-        if self.grille_precedente is not None:
-            gv = self.grille[np.invert(self.frontieres.mask)].flatten()
-            gnv = self.grille_precedente[np.invert(self.frontieres.mask)].flatten()
-            chng = np.sqrt(np.sum((gv - gnv) ** 2))
-            self.difference_courante = chng
+        if self.iteration == 1:
+            mask_shape = self.grille[2:-2, 2:-2].shape
+            mask = np.ones(mask_shape)
+            for i in range(0,mask_shape[0]):
+                if (i % 2) != 0:
+                    mask[i, :] = np.zeros((mask_shape[1]))
+            for j in range(0,mask_shape[1]):
+                if (j % 2) != 0:
+                    mask[:, j] = np.zeros((mask_shape[0]))
+            self.mask_erreur = mask
+
+        grille_erreur = self.grille.copy()
+        grille_erreur_precedente = self.grille_precedente.copy()
+        grille_erreur[2:-2, 2:-2] = (grille_erreur[2:-2, 2:-2] + grille_erreur[1:-3, 2:-2]
+                                        + grille_erreur[2:-2, 1:-3])/4
+        grille_erreur_precedente[2:-2, 2:-2] = (grille_erreur_precedente[2:-2, 2:-2] + grille_erreur_precedente[1:-3, 2:-2]
+                                        + grille_erreur_precedente[2:-2, 1:-3])/4
+        erreur = np.ma.sum((np.ma.masked_where(self.mask_erreur, grille_erreur[2:-2, 2:-2]) - np.ma.masked_where(self.mask_erreur, grille_erreur_precedente[2:-2, 2:-2]))**2)
+        self.difference_courante = np.sqrt(erreur)
+        print(self.difference_courante)
 
     def verification_terminal(self):
         self.terminal = self.difference_courante <= self.erreur
@@ -139,20 +155,21 @@ class RelaxationGaussSeidel(Relaxation):
 class SurRelaxation(Relaxation):
     def __init__(self, grille: np.ndarray, frontieres: np.ma.MaskedArray, **kwargs):
         super(SurRelaxation, self).__init__(grille, frontieres, **kwargs)
-        self.w: float = kwargs.get("w", 0.0)
+        self.w: float = kwargs.get("w", 0.0000000000000000000000000000000000000)
 
     def faire_iteration(self):
         self.iteration += 1
         self.grille_precedente = np.copy(self.grille)
+        prochaine_grille = np.copy(self.grille)
 
         r = np.indices(self.grille.shape)[0][2:-2, 2:-2]
-        self.grille[2:-2, 2:-2] = -self.w*self.grille[2:-2, 2:-2] + \
-                                  (1+self.w)*(self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
+        prochaine_grille[2:-2, 2:-2] = (1-self.w)*self.grille[2:-2, 2:-2] + \
+                                  self.w*(self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
                                   + self.grille[2:-2, :-4] + self.grille[2:-2, 4:]) / 4 \
-                                  + (1+self.w)*(self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2]) / (r * 4)
+                                  + self.w*(self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2]) / (r * 2)
 
+        self.grille = prochaine_grille
         self.appliquer_frontieres()
-
         self.calcul_erreur()
         self.verification_terminal()
 
@@ -165,10 +182,11 @@ class SurRelaxationGaussSeidel(SurRelaxation):
         self.grille_precedente = np.copy(self.grille)
 
         r = np.indices(self.grille.shape)[0][2:-2, 2:-2]
+
         self.grille[2:-2, 2:-2] = -self.w*self.grille[2:-2, 2:-2] \
-                                  (1+self.w)*(self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
+                                  + (1+self.w)*(self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
                                   + self.grille[2:-2, :-4] + self.grille[2:-2, 4:]) / 4 \
-                                  + (1+self.w)*(self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2]) / (r * 4)
+                                  + (1+self.w)*(self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2]) / (r * 2)
 
         self.appliquer_frontieres()
 

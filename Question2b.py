@@ -38,7 +38,7 @@ if __name__ == '__main__':
     mask_150V[int(1/cylindre_1.h)-1:int(1/cylindre_1.h)+1, :] = True
 
     mask_0V = np.zeros(cylindre_1.grille.shape)
-    mask_0V[-1, :] = True
+    mask_0V[-2, :] = True
 
     print(mask_150V+mask_0V)
 
@@ -51,7 +51,7 @@ if __name__ == '__main__':
 
     solution_analytique(cylindre_1.dimensions, cylindre_1.h)
 
-    relax = Relaxation(grille=cylindre_1.grille, frontieres=frontieres, h=h, erreur=1e-1,
+    relax = Relaxation(grille=cylindre_1.grille, frontieres=frontieres, h_par_indice=0.5, erreur=0.005,
                        nom="Carte de chaleur problème 2b")
     relax(100_000, verbose=True, affichage=False)
     relax.afficher_carte_de_chaleur()
