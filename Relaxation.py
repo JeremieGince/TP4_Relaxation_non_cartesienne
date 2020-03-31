@@ -60,7 +60,7 @@ class Relaxation:
                                         + grille_erreur_precedente[2:-2, 1:-3])/4
         erreur = np.ma.sum((np.ma.masked_where(self.mask_erreur, grille_erreur[2:-2, 2:-2]) - np.ma.masked_where(self.mask_erreur, grille_erreur_precedente[2:-2, 2:-2]))**2)
         self.difference_courante = np.sqrt(erreur)
-        print(self.difference_courante)
+        # print(self.difference_courante)
 
     def verification_terminal(self):
         self.terminal = self.difference_courante <= self.erreur
@@ -92,13 +92,15 @@ class Relaxation:
         return self.grille, self.iteration, temps_de_calcul
 
     def afficher_etat(self):
-        print(f"itr: {self.iteration} -> diff: {self.difference_courante}, Terminal: {self.terminal}")
+        print(f"--- Grille {self.nom} --- \n "
+              f"itr: {self.iteration} -> diff: {self.difference_courante}, Terminal: {self.terminal} \n"
+              f"--- {'-'*(7+len(self.nom))} --- \n")
 
     def afficher_carte_de_chaleur(self):
         sns.set()
         ax = sns.heatmap(self.grille)
-        plt.xlabel("z [2cm/h]")
-        plt.ylabel("r [2cm/h]")
+        plt.xlabel("z [2cm/hdemi]")
+        plt.ylabel("r [2cm/hdemi]")
         plt.title(f"{self.nom} - {self.iteration} itérations")
         plt.savefig(f"Figures/{self.nom}-{self.iteration}itr.png", dpi=300)
         plt.show()
