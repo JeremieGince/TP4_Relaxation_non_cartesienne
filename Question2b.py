@@ -20,8 +20,8 @@ def solution_analytique(grille_dimensions: (int, int), h: float):
 
     sns.set()
     ax = sns.heatmap(grille)
-    plt.xlabel("z [2cm/hdemi]")
-    plt.ylabel("r [2cm/hdemi]")
+    plt.xlabel("z [2cm/h]")
+    plt.ylabel("r [2cm/h]")
     plt.title("Solution analytique")
     plt.savefig(f"Figures/heatmap_2b_analytique.png", dpi=300)
     # plt.show()
@@ -46,9 +46,9 @@ if __name__ == '__main__':
 
     solution_analytique(cylindre_1.dimensions, cylindre_1.hdemi)
 
-    relax = Relaxation(grille=cylindre_1.grille, frontieres=frontieres, h_par_indice=0.5, erreur=0.005,
+    relax = Relaxation(grille=cylindre_1.grille, frontieres=frontieres, h_par_indice=0.5, h=h,
                        nom="Carte de chaleur problème 2b")
-    relax(100_000, verbose=True, affichage=False)
+    relax(-1, verbose=True, affichage=False)
     relax.afficher_carte_de_chaleur()
     relax.afficher_etat()
 

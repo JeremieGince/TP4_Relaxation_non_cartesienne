@@ -5,6 +5,11 @@ import time
 from scipy import signal
 
 
+def calcul_erreur(h: float):
+    C: float = 1e-16
+    return (1/8)*h**2 + 6*C/h
+
+
 class Relaxation:
     def __init__(self, grille: np.ndarray, frontieres: np.ma.MaskedArray, **kwargs):
         self.iteration: int = 0
@@ -13,7 +18,8 @@ class Relaxation:
         self.frontieres: np.ma.MaskedArray = frontieres
         self.terminal: bool = False
         self.difference_courante: float = np.inf
-        self.erreur: float = kwargs.get("erreur", 1e1)
+        self.h: float = kwargs.get("h", 0.1)
+        self.erreur: float = kwargs.get("erreur", calcul_erreur(self.h))
         self.h_par_indice = kwargs.get("h_par_indice", 1)
         self.nom = kwargs.get("nom", "carte_de_chaleur")
         self.mask_erreur = None
@@ -31,7 +37,7 @@ class Relaxation:
         r = np.indices(self.grille.shape)[0][2:-2, 2:-2]
         prochaine_grille[2:-2, 2:-2] = (self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
                                         + self.grille[2:-2, :-4] + self.grille[2:-2, 4:])/4 \
-                                        + (self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2])/(r*2)
+                                        + (self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2])/(r*4)
 
         self.grille = prochaine_grille
         self.appliquer_frontieres()
@@ -99,8 +105,8 @@ class Relaxation:
     def afficher_carte_de_chaleur(self):
         sns.set()
         ax = sns.heatmap(self.grille)
-        plt.xlabel("z [2cm/hdemi]")
-        plt.ylabel("r [2cm/hdemi]")
+        plt.xlabel("z [2cm/h]")
+        plt.ylabel("r [2cm/h]")
         plt.title(f"{self.nom} - {self.iteration} itérations")
         plt.savefig(f"Figures/{self.nom}-{self.iteration}itr.png", dpi=300)
         plt.show()
@@ -109,45 +115,23 @@ class Relaxation:
 class RelaxationGaussSeidel(Relaxation):
     def __init__(self, grille: np.ndarray, frontieres: np.ma.MaskedArray, **kwargs):
         super(RelaxationGaussSeidel, self).__init__(grille, frontieres, **kwargs)
-        self.kernel_h = (1/4)*np.array(
-            [[0, 0, 1, 0, 0],
-             [0, 0, 0, 0, 0],
-             [1, 0, 0, 0, 1],
-             [0, 0, 0, 0, 0],
-             [0, 0, 1, 0, 0]]
-        )
-        self.kernel_hdemi = (1/4)*np.array(
-            [[0, 0, 0, 0, 0],
-             [0, 0, -1, 0, 0],
-             [0, 0, 0, 0, 0],
-             [0, 0, 1, 0, 0],
-             [0, 0, 0, 0, 0]]
-        )
+        self.kernel = lambda r: (1 / 2) * np.array(
+                                    [[0, 0, 1, 0, 0],
+                                     [0, 0, -1/r, 0, 0],
+                                     [1, 0, 0, 0, 1],
+                                     [0, 0, 1/r, 0, 0],
+                                     [0, 0, 1, 0, 0]]
+                                )
 
     def faire_iteration(self):
         self.iteration += 1
         self.grille_precedente = np.copy(self.grille)
 
-        # self.grille[2:-2, 2:-2] = (self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
-        #                           + self.grille[2:-2, :-4] + self.grille[2:-2, 4:]) / 4 \
-        #                           + (self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2]) / (r * 4)
-
-        # self.grille[2:-2, 2:-2] = self.grille[:-4, 2:-2] / 4
-        # self.grille[2:-2, 2:-2] += self.grille[4:, 2:-2] / 4
-        # self.grille[2:-2, 2:-2] += self.grille[2:-2, :-4] / 4
-        # self.grille[2:-2, 2:-2] += self.grille[2:-2, 4:] / 4
-        # self.grille[2:-2, 2:-2] += self.grille[3:-1, 2:-2] / (r*4)
-        # self.grille[2:-2, 2:-2] += -self.grille[1:-3, 2:-2] / (r*4)
-
-        prochaine_grille = np.copy(self.grille)
-        r = np.indices(self.grille.shape)[0][2:-2, 2:-2]
-        prochaine_grille[2:-2, 2:-2] = signal.convolve2d(self.grille, self.kernel_h, mode="same")[2:-2, 2:-2]
-        prochaine_grille[2:-2, 2:-2] += signal.convolve2d(self.grille, self.kernel_hdemi, mode="same")[2:-2, 2:-2]/r
-
-        self.grille = prochaine_grille
+        for i in range(self.grille[2:-2, :].shape[0]):
+            j = i + 2
+            self.grille[2:-2, :][i, :] = signal.convolve2d(self.grille[j-2:j+3, :], self.kernel(j), mode="same")[2, :]
 
         self.appliquer_frontieres()
-
         self.calcul_erreur()
         self.verification_terminal()
 
@@ -157,7 +141,7 @@ class RelaxationGaussSeidel(Relaxation):
 class SurRelaxation(Relaxation):
     def __init__(self, grille: np.ndarray, frontieres: np.ma.MaskedArray, **kwargs):
         super(SurRelaxation, self).__init__(grille, frontieres, **kwargs)
-        self.w: float = kwargs.get("w", 0.0000000000000000000000000000000000000)
+        self.w: float = kwargs.get("w", 0.00)
 
     def faire_iteration(self):
         self.iteration += 1
@@ -178,17 +162,25 @@ class SurRelaxation(Relaxation):
         return self.grille, self.iteration
 
 
-class SurRelaxationGaussSeidel(SurRelaxation):
+class SurRelaxationGaussSeidel(SurRelaxation, RelaxationGaussSeidel):
+    def __init__(self, grille: np.ndarray, frontieres: np.ma.MaskedArray, **kwargs):
+        super(SurRelaxationGaussSeidel, self).__init__(grille, frontieres)
+        self.kernel = lambda r: (1 / 4) * np.array(
+            [[0, 0, self.w, 0, 0],
+             [0, 0, -self.w / r, 0, 0],
+             [self.w, 0, (1-self.w), 0, self.w],
+             [0, 0, self.w / r, 0, 0],
+             [0, 0, self.w, 0, 0]]
+        )
+
     def faire_iteration(self):
         self.iteration += 1
         self.grille_precedente = np.copy(self.grille)
 
-        r = np.indices(self.grille.shape)[0][2:-2, 2:-2]
-
-        self.grille[2:-2, 2:-2] = -self.w*self.grille[2:-2, 2:-2] \
-                                  + (1+self.w)*(self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
-                                  + self.grille[2:-2, :-4] + self.grille[2:-2, 4:]) / 4 \
-                                  + (1+self.w)*(self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2]) / (r * 2)
+        for i in range(self.grille[2:-2, :].shape[0]):
+            j = i + 2
+            self.grille[2:-2, :][i, :] = signal.convolve2d(self.grille[j - 2:j + 3, :],
+                                                           self.kernel(j), mode="same")[2, :]
 
         self.appliquer_frontieres()
 

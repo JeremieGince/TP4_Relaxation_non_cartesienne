@@ -1,6 +1,6 @@
 import numpy as np
 from Cylindre import Cylindre
-from Relaxation import RelaxationGaussSeidel, SurRelaxation
+from Relaxation import RelaxationGaussSeidel, SurRelaxation, SurRelaxationGaussSeidel
 
 
 if __name__ == '__main__':
@@ -19,18 +19,24 @@ if __name__ == '__main__':
     )
 
     # Question c i
-
-    relax_gauss = RelaxationGaussSeidel(grille=cylindre_1.grille, frontieres=frontieres, h=h, erreur=0.005,
+    relax_gauss = RelaxationGaussSeidel(grille=cylindre_1.grille, frontieres=frontieres, h_par_indice=0.5, h=h,
                                         nom="Carte de chaleur problème 2ci")
-    relax_gauss(100_000, verbose=True, affichage=False)
+    relax_gauss(30_000, verbose=True, affichage=False)
     relax_gauss.afficher_carte_de_chaleur()
 
     # Question c ii
-    sur_relax = SurRelaxation(grille=cylindre_1.grille, frontieres=frontieres, h_par_indice=0.5, erreur=0.005,
-                              nom="Carte de chaleur problème 2cii", w=1.0009)
-    sur_relax(100_000, verbose=True, affichage=False)
-    sur_relax.afficher_carte_de_chaleur()
+    # sur_relax = SurRelaxation(grille=cylindre_1.grille, frontieres=frontieres, h_par_indice=0.5, h=h,
+    #                           nom="Carte de chaleur problème 2cii", w=0.5)  # w=1.0009
+    # sur_relax(100_000, verbose=True, affichage=False)
+    # sur_relax.afficher_carte_de_chaleur()
+
+    # Question c ii
+    # sur_relax_gauss = SurRelaxationGaussSeidel(grille=cylindre_1.grille, frontieres=frontieres, h_par_indice=0.5, h=h,
+    #                                            nom="Carte de chaleur problème 2ci", w=1.0009)
+    # sur_relax_gauss(30_000, verbose=True, affichage=False)
+    # sur_relax_gauss.afficher_carte_de_chaleur()
 
     relax_gauss.afficher_etat()
-    sur_relax.afficher_etat()
+    # sur_relax.afficher_etat()
+    # sur_relax_gauss.afficher_etat()
 
