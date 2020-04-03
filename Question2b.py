@@ -38,7 +38,7 @@ if __name__ == '__main__':
     mask_0V[-2:, :] = True
 
     frontieres = np.ma.array(
-        np.where(mask_150V, 150, 0*cylindre_1.grille) + np.where(mask_0V, 0, 0*cylindre_1.grille),
+        np.where(mask_150V, 150, cylindre_1.grille) + np.where(mask_0V, 0, cylindre_1.grille),
         mask=(mask_150V+mask_0V)
     )
 

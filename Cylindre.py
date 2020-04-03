@@ -10,4 +10,4 @@ class Cylindre:
 
     @property
     def grille(self):
-        return np.ones(self.dimensions)
+        return np.zeros(self.dimensions)
