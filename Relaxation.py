@@ -139,7 +139,7 @@ class RelaxationGaussSeidel(Relaxation):
     def calcul_sur_grille_jit(grille: np.ndarray, kernels: np.ndarray):
         for i in range(grille[2:-2, :].shape[0]):
             j = i + 2
-            grille[2:-2, :][i, :] = np.convolve(grille[j-2:j+3, :], kernels[j], mode="same")[2, :]
+            grille[2:-2, :][i, :] = signal.convolve2d(grille[j-2:j+3, :], kernels[j], mode="same")[2, :]
         return grille
 
     def calcul_sur_grille(self):
@@ -153,7 +153,7 @@ class SurRelaxation(Relaxation):
         self.w: float = kwargs.get("w", 1.5)
 
     @jit
-    def calcul_Sur_grille(self):
+    def calcul_sur_grille(self):
         prochaine_grille = np.copy(self.grille)
 
         r = np.indices(self.grille.shape)[0][2:-2, 2:-2]
