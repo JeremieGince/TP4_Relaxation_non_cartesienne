@@ -3,6 +3,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import time
 from scipy import signal
+from numba import jit
 
 
 def calcul_erreur(h: float):
@@ -29,17 +30,20 @@ class Relaxation:
     def appliquer_frontieres(self):
         self.grille = np.where(self.frontieres.mask, self.frontieres, self.grille)
 
-    def faire_iteration(self):
-        self.iteration += 1
-        self.grille_precedente = np.copy(self.grille)
-
+    @jit(nopython=True)
+    def calcul_sur_grille(self):
         prochaine_grille = np.copy(self.grille)
         r = np.indices(self.grille.shape)[0][2:-2, 2:-2]
         prochaine_grille[2:-2, 2:-2] = (self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
-                                        + self.grille[2:-2, :-4] + self.grille[2:-2, 4:])/4 \
-                                        + (self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2])/(r*4)
+                                        + self.grille[2:-2, :-4] + self.grille[2:-2, 4:]) / 4 \
+                                        + (self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2]) / (r * 4)
 
         self.grille = prochaine_grille
+
+    def faire_iteration(self):
+        self.iteration += 1
+        self.grille_precedente = np.copy(self.grille)
+        self.calcul_sur_grille()
         self.appliquer_frontieres()
 
         self.calcul_erreur()
@@ -115,7 +119,7 @@ class Relaxation:
 class RelaxationGaussSeidel(Relaxation):
     def __init__(self, grille: np.ndarray, frontieres: np.ma.MaskedArray, **kwargs):
         super(RelaxationGaussSeidel, self).__init__(grille, frontieres, **kwargs)
-        self.kernel = lambda r: (1 / 2) * np.array(
+        self.kernel = lambda r: (1 / 4) * np.array(
                                     [[0, 0, 1, 0, 0],
                                      [0, 0, -1/r, 0, 0],
                                      [1, 0, 0, 0, 1],
@@ -123,19 +127,11 @@ class RelaxationGaussSeidel(Relaxation):
                                      [0, 0, 1, 0, 0]]
                                 )
 
-    def faire_iteration(self):
-        self.iteration += 1
-        self.grille_precedente = np.copy(self.grille)
-
+    @jit(nopython=True)
+    def calcul_sur_grille(self):
         for i in range(self.grille[2:-2, :].shape[0]):
             j = i + 2
             self.grille[2:-2, :][i, :] = signal.convolve2d(self.grille[j-2:j+3, :], self.kernel(j), mode="same")[2, :]
-
-        self.appliquer_frontieres()
-        self.calcul_erreur()
-        self.verification_terminal()
-
-        return self.grille, self.iteration
 
 
 class SurRelaxation(Relaxation):
@@ -143,23 +139,16 @@ class SurRelaxation(Relaxation):
         super(SurRelaxation, self).__init__(grille, frontieres, **kwargs)
         self.w: float = kwargs.get("w", 0.00)
 
-    def faire_iteration(self):
-        self.iteration += 1
-        self.grille_precedente = np.copy(self.grille)
+    def calcul_Sur_grille(self):
         prochaine_grille = np.copy(self.grille)
 
         r = np.indices(self.grille.shape)[0][2:-2, 2:-2]
         prochaine_grille[2:-2, 2:-2] = (1-self.w)*self.grille[2:-2, 2:-2] + \
                                   self.w*(self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
                                   + self.grille[2:-2, :-4] + self.grille[2:-2, 4:]) / 4 \
-                                  + self.w*(self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2]) / (r * 2)
+                                  + self.w*(self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2]) / (r * 4)
 
         self.grille = prochaine_grille
-        self.appliquer_frontieres()
-        self.calcul_erreur()
-        self.verification_terminal()
-
-        return self.grille, self.iteration
 
 
 class SurRelaxationGaussSeidel(SurRelaxation, RelaxationGaussSeidel):
@@ -173,18 +162,9 @@ class SurRelaxationGaussSeidel(SurRelaxation, RelaxationGaussSeidel):
              [0, 0, self.w, 0, 0]]
         )
 
-    def faire_iteration(self):
-        self.iteration += 1
-        self.grille_precedente = np.copy(self.grille)
-
+    @jit(nopython=True)
+    def calcul_sur_grille(self):
         for i in range(self.grille[2:-2, :].shape[0]):
             j = i + 2
             self.grille[2:-2, :][i, :] = signal.convolve2d(self.grille[j - 2:j + 3, :],
                                                            self.kernel(j), mode="same")[2, :]
-
-        self.appliquer_frontieres()
-
-        self.calcul_erreur()
-        self.verification_terminal()
-
-        return self.grille, self.iteration
