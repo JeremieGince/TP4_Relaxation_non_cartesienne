@@ -37,7 +37,7 @@ if __name__ == '__main__':
 
     mask_0V = np.zeros(cylindre_1.grille.shape)
     mask_0V[-1:, :] = True
-    # mask_0V[:1, :] = True
+    # mask_0V_c2[:1, :] = True
     mask_0V[:int(1 / cylindre_1.h), :1] = True
     mask_0V[int(1 / cylindre_1.h) + 1:, :1] = True
     mask_0V[:int(1 / cylindre_1.h), -1:] = True
@@ -48,7 +48,7 @@ if __name__ == '__main__':
         mask=(mask_150V+mask_0V)
     )
 
-    # print(frontieres.data, frontieres.mask, sep="\n")
+    # print(frontieres_c2.data, frontieres_c2.mask, sep="\n")
 
     solution_analytique(cylindre_1.dimensions, cylindre_1.h)
 
