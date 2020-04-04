@@ -23,10 +23,9 @@ class Relaxation:
         self.difference_courante: float = np.inf
         self.h: float = kwargs.get("h", 0.1)
         self.erreur: float = kwargs.get("erreur", calcul_erreur(self.h))
-        self.h_par_indice = kwargs.get("h_par_indice", 1)
         self.nom = kwargs.get("nom", "carte_de_chaleur")
-        self.mask_erreur = None
 
+        # Pas modifier
         self.kernel = lambda r: (1 / 4) * np.array(
             [[0, 0, 1, 0, 0],
              [0, 0, -1 / max(r, 1), 0, 0],
@@ -46,10 +45,10 @@ class Relaxation:
     @jit
     def calcul_sur_grille(self):
         # prochaine_grille = np.copy(self.grille)
-        # r = np.indices(self.grille.shape)[0][2:-2, 2:-2]
-        # prochaine_grille[2:-2, 2:-2] = (self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
-        #                                 + self.grille[2:-2, :-4] + self.grille[2:-2, 4:]) / 4 \
-        #                                 + (self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2]) / (r * 4)
+        # r = np.indices(self.grille.shape)[0][1:-1, 1:-1]
+        # prochaine_grille[2:-2, 2:-2] = (self.grille[:-2, 1:-1] + self.grille[2:, 1:-1]
+        #                                 + self.grille[1:-1, :-2] + self.grille[1:-1, 2:]) / 4 \
+        #                                 + (self.grille[2:, 1:-1] - self.grille[0:-2, 1:-1]) / (r * 8)
         #
         # self.grille = prochaine_grille
         self.calcul_sur_grille_conv()
@@ -58,9 +57,10 @@ class Relaxation:
     def calcul_sur_grille_conv(self):
         prochaine_grille = np.copy(self.grille)
 
-        for i in range(self.grille[2:-2, :].shape[0]):
+        for i in range(self.grille[1:-1, :].shape[0]):
             j = i + 2
-            prochaine_grille[2:-2, 2:-2][i, :] = signal.convolve2d(self.grille[j - 2:j + 3, :], self.kernels[j],
+            # Pas modifier (signal....
+            prochaine_grille[1:-1, 1:-1][i, :] = signal.convolve2d(self.grille[j - 2:j + 3, :], self.kernels[j],
                                                                    mode="valid")
         self.grille = prochaine_grille
 
@@ -76,26 +76,9 @@ class Relaxation:
 
     @jit
     def calcul_erreur(self):
-        self.difference_precedente = self.difference_courante
-        if self.iteration == 1:
-            mask_shape = self.grille[2:-2, 2:-2].shape
-            mask = np.ones(mask_shape)
-            for i in range(0, mask_shape[0]):
-                if (i % 2) != 0:
-                    mask[i, :] = np.zeros((mask_shape[1]))
-            for j in range(0, mask_shape[1]):
-                if (j % 2) != 0:
-                    mask[:, j] = np.zeros((mask_shape[0]))
-            self.mask_erreur = mask
-
-        grille_erreur = self.grille.copy()
-        grille_erreur_precedente = self.grille_precedente.copy()
-        grille_erreur[2:-2, 2:-2] = (grille_erreur[2:-2, 2:-2] + grille_erreur[1:-3, 2:-2]
-                                        + grille_erreur[2:-2, 1:-3])/4
-        grille_erreur_precedente[2:-2, 2:-2] = (grille_erreur_precedente[2:-2, 2:-2] + grille_erreur_precedente[1:-3, 2:-2]
-                                        + grille_erreur_precedente[2:-2, 1:-3])/4
-        erreur = np.ma.sum((np.ma.masked_where(self.mask_erreur, grille_erreur[2:-2, 2:-2]) - np.ma.masked_where(self.mask_erreur, grille_erreur_precedente[2:-2, 2:-2]))**2)
+        erreur = np.sum((self.grille[1:-1, 1:-1] - self.grille_precedente[1:-1, 1:-1] )**2)
         self.difference_courante = np.sqrt(erreur)
+        print(self.difference_courante)
 
     def verification_terminal(self):
         self.terminal = self.difference_courante <= self.erreur
@@ -150,6 +133,7 @@ class RelaxationGaussSeidel(Relaxation):
     def __init__(self, grille: np.ndarray, frontieres: np.ma.MaskedArray, **kwargs):
         super(RelaxationGaussSeidel, self).__init__(grille, frontieres, **kwargs)
         self.methode = "Relaxation Gauss-Seidel"
+        # Pas modifier attention de ne pas oublier le facteur 2 sur le r (ce qui fait 4 fois 2 donc 8)
         self.kernel = lambda r: (1 / 4) * np.array(
                                     [[0, 0, 1, 0, 0],
                                      [0, 0, -1/max(r, 1), 0, 0],
@@ -164,29 +148,32 @@ class RelaxationGaussSeidel(Relaxation):
     @staticmethod
     @jit
     def calcul_sur_grille_jit(grille: np.ndarray, kernels: np.ndarray):
-        for i in range(grille[2:-2, :].shape[0]):
+        for i in range(grille[1:-1, :].shape[0]):
             j = i + 2
-            grille[2:-2, 2:-2][i, :] = signal.convolve2d(grille[j-2:j+3, :], kernels[j], mode="valid")
+            # Pas modifier (signal....
+            grille[1:-1, 1:-1][i, :] = signal.convolve2d(grille[j-2:j+3, :], kernels[j], mode="valid")
         return grille
 
     def calcul_sur_grille_conv(self):
-        for i in range(self.grille[2:-2, :].shape[0]):
+        for i in range(self.grille[1:-1, :].shape[0]):
             j = i + 2
-            self.grille[2:-2, 2:-2][i, :] = signal.convolve2d(self.grille[j-2:j+3, :], self.kernels[j], mode="valid")
+            # Pas modifier (signal....
+            self.grille[1:-1, 1:-1][i, :] = signal.convolve2d(self.grille[j-2:j+3, :], self.kernels[j], mode="valid")
 
     def calcul_sur_grille_sclicing(self):
         for i in range(self.grille[2:-2, :].shape[0]):
             if i % 2 == 0:
                 continue
-            r = np.indices(self.grille.shape)[0][2:-2, 2:-2]
-            self.grille[2:-2, 2:-2][i, :] = ((self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
-                                             + self.grille[2:-2, :-4] + self.grille[2:-2, 4:]) / 4 \
-                                             + (self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2]) / (r * 4))[i, :]
+            r = np.indices(self.grille.shape)[0][1:-1, 1:-1]
+            self.grille[1:-1, 1:-1][i, :] = ((self.grille[:-2, 1:-1] + self.grille[2:, 1:-1]
+                                             + self.grille[1:-1, :-2] + self.grille[1:-1, 2:]) / 4
+                                             + (self.grille[2:, 1:-1] - self.grille[:-2, 1:-1]) / (r * 8))[i, :]
 
-        for i in range(self.grille[2:-2, :].shape[0]):
+        for i in range(self.grille[1:-1, :].shape[0]):
+            # Pas modifier le if est tu vraiment utile maintenant que c h et non h/2
             if i % 2 != 0:
                 continue
-            r = np.indices(self.grille.shape)[0][2:-2, 2:-2]
+            r = np.indices(self.grille.shape)[0][1:-1, 1:-1]
             self.grille[2:-2, 2:-2][i, :] = ((self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
                                              + self.grille[2:-2, :-4] + self.grille[2:-2, 4:]) / 4 \
                                              + (self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2]) / (r * 4))[i, :]
@@ -202,6 +189,7 @@ class SurRelaxation(Relaxation):
         super(SurRelaxation, self).__init__(grille, frontieres, **kwargs)
         self.methode = "Sur relaxation"
         self.w: float = kwargs.get("w", 0.00)
+        # Pas modifier les kernels, whatch out pour le 4*2 qui mulripli le r
         self.kernel = lambda r: ((1 + self.w) / 4) * np.array(
             [[0, 0, 1, 0, 0],
              [0, 0, -1 / max(r, 1), 0, 0],
@@ -223,15 +211,16 @@ class SurRelaxation(Relaxation):
     def calcul_sur_grille(self):
         prochaine_grille = np.copy(self.grille)
 
-        # r = np.indices(self.grille.shape)[0][2:-2, 2:-2]
-        # prochaine_grille[2:-2, 2:-2] = (1-self.w)*self.grille[2:-2, 2:-2] + \
-        #                                 self.w*(self.grille[:-4, 2:-2] + self.grille[4:, 2:-2]
-        #                                 + self.grille[2:-2, :-4] + self.grille[2:-2, 4:]) / 4 \
-        #                                 + self.w*(self.grille[3:-1, 2:-2] - self.grille[1:-3, 2:-2]) / (r * 4)
+        # r = np.indices(self.grille.shape)[0][1:-1, 1:-1]
+        # prochaine_grille[1:-1, 1:-1] = (1-self.w)*self.grille[1:-1, 1:-1] + \
+        #                                 self.w*(self.grille[:-2, 1:-1] + self.grille[2:, 1:-1]
+        #                                 + self.grille[1:-1, :-2] + self.grille[1:-1, 2:]) / 4 \
+        #                                 + self.w*(self.grille[2:, 1:-1] - self.grille[:-2, 1:-1]) / (r * 8)
 
-        for i in range(self.grille[2:-2, :].shape[0]):
+        for i in range(self.grille[1:-1, :].shape[0]):
             j = i + 2
-            prochaine_grille[2:-2, 2:-2][i, :] = signal.convolve2d(self.grille[j-2:j+3, :], self.kernels[j], mode="valid")
+            # Pas modifier (signal....
+            prochaine_grille[1:-1, 1:-1][i, :] = signal.convolve2d(prochaine_grille[j-2:j+3, :], self.kernels[j], mode="valid")
 
         self.grille = prochaine_grille
 
@@ -246,6 +235,7 @@ class SurRelaxationGaussSeidel(SurRelaxation, RelaxationGaussSeidel):
     def __init__(self, grille: np.ndarray, frontieres: np.ma.MaskedArray, **kwargs):
         super(SurRelaxationGaussSeidel, self).__init__(grille, frontieres, **kwargs)
         self.methode = "Sur relaxation + Gauss-Seidel"
+        # Pas modifier kernel, ici aussi whacth out pour le 4*2 du r
         self.kernel = lambda r: ((1+self.w) / 4) * np.array(
                                     [[0, 0, 1, 0, 0],
                                      [0, 0, -1/max(r, 1), 0, 0],
