@@ -18,10 +18,11 @@ def solution_analytique(grille_dimensions: (int, int), h: float):
 
     grille = np.array(grille)
 
+    plt.clf()
     sns.set()
     ax = sns.heatmap(grille)
-    plt.xlabel("z [2cm/h]")
-    plt.ylabel("r [2cm/h]")
+    plt.xlabel("z [cm/h]")
+    plt.ylabel("r [cm/h]")
     plt.title("Solution analytique")
     plt.savefig(f"Figures/heatmap_2b_analytique.png", dpi=300)
     # plt.show()
@@ -56,4 +57,6 @@ if __name__ == '__main__':
     relax(-1, verbose=False, affichage=False)
     relax.afficher_carte_de_chaleur()
     relax.afficher_etat()
+    relax.afficher_differences_en_fct_iteration()
+    relax.afficher_temps_en_fct_iteration()
 

@@ -25,6 +25,9 @@ class Relaxation:
         self.temps_de_calcul: float = 0.00
         self.nom = kwargs.get("nom", "carte_de_chaleur")
 
+        self.differences: list = list()
+        self.temps: list = list()
+
         self.kernel = lambda r: (1 / 4) * np.array(
              [[0, 1-(1 / max(2*r, 1)), 0],
               [1, 0, 1],
@@ -60,12 +63,14 @@ class Relaxation:
         self.verification_terminal()
 
         self.temps_de_calcul += time.time() - temps_depart
+        self.temps.append(self.temps_de_calcul)
         return self.grille, self.iteration
 
     @jit
     def calcul_erreur(self):
         erreur = np.sum((self.grille[1:-1, 1:-1] - self.grille_precedente[1:-1, 1:-1] )**2)
         self.difference_courante = np.sqrt(erreur)
+        self.differences.append(self.difference_courante)
 
     def verification_terminal(self):
         self.terminal = self.difference_courante <= self.erreur
@@ -107,10 +112,28 @@ class Relaxation:
         plt.clf()
         sns.set()
         ax = sns.heatmap(self.grille)
-        plt.xlabel("z [2cm/h]")
-        plt.ylabel("r [2cm/h]")
+        plt.xlabel("z [cm/h]")
+        plt.ylabel("r [cm/h]")
         plt.title(f"{self.nom} - {self.iteration} itérations")
-        plt.savefig(f"Figures/{self.nom}-{self.iteration}itr.png", dpi=300)
+        plt.savefig(f"Figures/{self.nom.replace(' ', '_')}-{self.iteration}itr.png", dpi=300)
+        plt.show()
+
+    def afficher_differences_en_fct_iteration(self):
+        plt.clf()
+        plt.plot(range(1, self.iteration+1), self.differences, lw=2)
+        plt.xlabel("Itération [-]")
+        plt.ylabel("Différence [-]")
+        plt.title(f"Différence en fonction du nombre d'itération pour {self.methode}")
+        plt.savefig(f"Figures/errFctItr-{self.methode.replace(' ', '_')}-{self.iteration}itr.png", dpi=300)
+        plt.show()
+
+    def afficher_temps_en_fct_iteration(self):
+        plt.clf()
+        plt.plot(range(1, self.iteration+1), self.temps, lw=2)
+        plt.xlabel("Itération [-]")
+        plt.ylabel("Temps de calcul [-]")
+        plt.title(f"Temps de calcul en fonction du nombre d'itération pour {self.methode}")
+        plt.savefig(f"Figures/tempsFctItr-{self.methode.replace(' ', '_')}-{self.iteration}itr.png", dpi=300)
         plt.show()
 
 
@@ -169,7 +192,7 @@ class SurRelaxation(Relaxation):
     def afficher_etat(self):
         print(f"--- Grille {self.nom} --- \n "
               f"Méthode: {self.methode} avec w = {self.w} \n"
-              f"itr: {self.iteration} -> diff: {self.difference_courante}, Terminal: {self.terminal} \n"
+              f"itr: {self.iteration} -> diff: {self.difference_courante:.5e}, Terminal: {self.terminal} \n"
               f"Temps de calcul total: {self.temps_de_calcul:.3f} s \n"
               f"--- {'-'*(7+len(self.nom))} --- \n")
 
