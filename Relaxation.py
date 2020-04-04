@@ -19,6 +19,7 @@ class Relaxation:
         self.grille_precedente = None
         self.frontieres: np.ma.MaskedArray = frontieres
         self.terminal: bool = False
+        self.difference_precedente: float = None
         self.difference_courante: float = np.inf
         self.h: float = kwargs.get("h", 0.1)
         self.erreur: float = kwargs.get("erreur", calcul_erreur(self.h))
@@ -75,13 +76,14 @@ class Relaxation:
 
     @jit
     def calcul_erreur(self):
+        self.difference_precedente = self.difference_courante
         if self.iteration == 1:
             mask_shape = self.grille[2:-2, 2:-2].shape
             mask = np.ones(mask_shape)
-            for i in range(0,mask_shape[0]):
+            for i in range(0, mask_shape[0]):
                 if (i % 2) != 0:
                     mask[i, :] = np.zeros((mask_shape[1]))
-            for j in range(0,mask_shape[1]):
+            for j in range(0, mask_shape[1]):
                 if (j % 2) != 0:
                     mask[:, j] = np.zeros((mask_shape[0]))
             self.mask_erreur = mask
@@ -97,6 +99,9 @@ class Relaxation:
 
     def verification_terminal(self):
         self.terminal = self.difference_courante <= self.erreur
+        # if self.difference_precedente is not None and self.difference_courante > self.difference_precedente:
+        #     self.terminal = True
+        #     self.grille = self.grille_precedente
 
     def __call__(self, nombre_iterations: int = None, **kwargs):
         temps_de_depart = time.time()
