@@ -7,6 +7,11 @@ from numba import jit
 
 
 def calcul_erreur(h: float):
+    """
+    Calcul d'erreur théorique.
+    :param h: paramètre h utilisé pour la relaxation.
+    :return: L'erreur théorique.
+    """
     C: float = 1e-16
     return (1/8)*h**2 + 6*C/h
 
@@ -44,6 +49,10 @@ class Relaxation:
 
     @jit
     def calcul_sur_grille(self):
+        """
+        Effectue le calcul de relaxation sur la grille courante.
+        :return: None
+        """
         prochaine_grille = np.copy(self.grille)
 
         for i in range(self.grille[1:-1, :].shape[0]):
@@ -53,6 +62,10 @@ class Relaxation:
         self.grille = prochaine_grille
 
     def faire_iteration(self):
+        """
+        Effectue une itération de la technique de relaxation sur la grille courante.
+        :return: la grille courante, l'itération courante.
+        """
         temps_depart = time.time()
         self.iteration += 1
         self.grille_precedente = np.copy(self.grille)
@@ -68,6 +81,10 @@ class Relaxation:
 
     @jit
     def calcul_erreur(self):
+        """
+        Calcul l'erreur entre la grille courante et précédente.
+        :return: None
+        """
         erreur = np.sum((self.grille[1:-1, 1:-1] - self.grille_precedente[1:-1, 1:-1] )**2)
         self.difference_courante = np.sqrt(erreur)
         self.differences.append(self.difference_courante)
@@ -76,6 +93,14 @@ class Relaxation:
         self.terminal = self.difference_courante <= self.erreur
 
     def __call__(self, nombre_iterations: int = None, **kwargs):
+        """
+        Effectue le nombre d'itération demandé avec la technique de relaxation.
+        :param nombre_iterations: Le nombre d'itération sur la grille demandeé. Si nombre_iterations < 0,
+         alors jusqu'à atteindre l'erreur.
+        :param kwargs: verbose: affiche des résultat intermidiaires si Vrai sinon ne fait rien.
+                        affichage: affiche les cartes de chaleur intermidiaire si Vrai, ne fait rien sinon.
+        :return: grille courante, iteration courante, temps_de_calcul pour nombre_iterations
+        """
         temp_depart = time.time()
         if nombre_iterations is None or nombre_iterations < 0:
             nombre_iterations = np.iinfo(np.int32).max
@@ -144,6 +169,10 @@ class RelaxationGaussSeidel(Relaxation):
 
     @jit
     def calcul_sur_grille(self):
+        """
+        Effectue le calcul de relaxation Gauss-Seidel sur la grille courante.
+        :return: None
+        """
         for i in range(self.grille[1:-1, :].shape[0]):
             if i % 2 == 0:
                 continue
@@ -180,6 +209,10 @@ class SurRelaxation(Relaxation):
 
     @jit
     def calcul_sur_grille(self):
+        """
+        Effectue le calcul de sur-relaxation sur la grille courante.
+        :return: None
+        """
         prochaine_grille = np.copy(self.grille)
 
         for i in range(self.grille[1:-1, :].shape[0]):
