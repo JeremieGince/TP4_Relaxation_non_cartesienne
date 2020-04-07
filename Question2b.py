@@ -13,7 +13,7 @@ def solution_analytique(grille_dimensions: (int, int), h: float):
         ligne = []
         for j in range(grille_dimensions[1]):
             vi = v(i*h, j*h)
-            ligne.append(min(vi if vi != np.inf else 150, 150))
+            ligne.append(vi if vi != np.inf else 150)
         grille.append(ligne)
 
     grille = np.array(grille)
@@ -25,7 +25,7 @@ def solution_analytique(grille_dimensions: (int, int), h: float):
     plt.ylabel("r [cm/h]")
     plt.title("Solution analytique")
     plt.savefig(f"Figures/heatmap_2b_analytique.png", dpi=300)
-    # plt.show()
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -57,6 +57,4 @@ if __name__ == '__main__':
     relax(-1, verbose=False, affichage=False)
     relax.afficher_carte_de_chaleur()
     relax.afficher_etat()
-    relax.afficher_differences_en_fct_iteration()
-    relax.afficher_temps_en_fct_iteration()
 
