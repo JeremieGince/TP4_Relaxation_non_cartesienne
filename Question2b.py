@@ -12,7 +12,7 @@ def solution_analytique(grille_dimensions: (int, int), h: float):
     for i in range(grille_dimensions[0]):
         ligne = []
         for j in range(grille_dimensions[1]):
-            vi = v(i*h, j*h)
+            vi = v(abs(i - 10)*h, j*h)
             ligne.append(vi if vi != np.inf else 150)
         grille.append(ligne)
 

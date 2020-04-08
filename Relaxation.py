@@ -39,7 +39,7 @@ class Relaxation:
               [0, (1+1 / max(2*r, 1)), 0]]
         )
         self.kernels = np.array([
-            self.kernel(i) for i in range(self.grille.shape[0])
+            self.kernel(abs(i - 10)) for i in range(self.grille.shape[0])
         ])
 
         self.appliquer_frontieres()
@@ -204,7 +204,7 @@ class SurRelaxation(Relaxation):
              [0, 0, 0]]
         )
         self.kernels = np.array([
-            self.kernel(i) for i in range(self.grille.shape[0])
+            self.kernel(i - 10) for i in range(self.grille.shape[0])
         ])
 
     @jit
