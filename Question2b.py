@@ -54,7 +54,7 @@ if __name__ == '__main__':
 
     relax = Relaxation(grille=cylindre_1.grille, frontieres=frontieres, h_par_indice=1, h=h,
                        nom="Carte de chaleur problème 2b")
-    relax(30_000, verbose=True, affichage=False)
+    relax(30_000, verbose=False, affichage=False)
     relax.afficher_carte_de_chaleur()
     relax.afficher_etat()
 

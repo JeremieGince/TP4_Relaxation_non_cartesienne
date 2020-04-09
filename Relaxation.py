@@ -34,9 +34,9 @@ class Relaxation:
         self.temps: list = list()
 
         self.kernel = lambda r: (1 / 4) * np.array(
-             [[0, 1-(1 / 2*r), 0],
+             [[0, 1-(1 / (2*r)), 0],
               [1, 0, 1],
-              [0, 1+(1 / 2*r), 0]]
+              [0, 1+(1 / (2*r)), 0]]
         )
         self.kernel_0 = lambda r: (1 / 4) * np.array(
             [[0, 1 - (1-r)/2, 0],
@@ -44,7 +44,7 @@ class Relaxation:
              [0, 1 + (1-r)/2, 0]]
         )
         self.kernels = np.array([
-            self.kernel(abs(i - 10)) if abs(i - 10) > 0 else self.kernel_0(abs(i - 10))
+            self.kernel(abs(i-10)) if abs(i-10) > 0 else self.kernel_0(abs(i-10))
             for i in range(self.grille.shape[0])
         ])
 
@@ -209,8 +209,18 @@ class SurRelaxation(Relaxation):
              [0, 1, 0],
              [0, 0, 0]]
         )
+        self.kernel_0 = lambda r: ((1 + self.w) / 4) * np.array(
+            [[0, 1 - (1 - r) / 2, 0],
+             [1, 0, 1],
+             [0, 1 + (1 - r) / 2, 0]]
+        ) - self.w * np.array(
+            [[0, 0, 0],
+             [0, 1, 0],
+             [0, 0, 0]]
+        )
         self.kernels = np.array([
-            self.kernel(i - 10) for i in range(self.grille.shape[0])
+            self.kernel(abs(i-10)) if abs(i-10) > 0 else self.kernel_0(abs(i-10))
+            for i in range(self.grille.shape[0])
         ])
 
     @jit
